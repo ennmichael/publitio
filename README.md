@@ -23,8 +23,10 @@ godoc -http :8080
 ### Example usage
 
 ```go
+import "github.com/ennmichael/publitio"
+
 func Example() {
-	api := API{Key: "xxx", Secret: "yyy"}
+	api := publitio.API{Key: "xxx", Secret: "yyy"}
 	api.Get("files/list", url.Values{"limit": {"12"}}) // List at most 12 files
 	api.Get("files/list", url.Values{})                // List all files, no query parameters
 	api.Get("/files/list", nil)                        // You can always pass nil if you have no query parameters
@@ -44,7 +46,7 @@ func Example() {
 }
 
 func ExampleAPI_UploadFile() {
-	api := API{Key: "xxx", Secret: "yyy"}
+	api := publitio.API{Key: "xxx", Secret: "yyy"}
 	reader, _ := os.Open("path/to/file")
 
 	// Upload a file from memory and give it a title
@@ -55,18 +57,18 @@ func ExampleAPI_UploadFile() {
 }
 
 func ExampleAPI_Delete() {
-	api := API{Key: "xxx", Secret: "yyy"}
+	api := publitio.API{Key: "xxx", Secret: "yyy"}
 	api.Delete("files/delete/fileId", url.Values{}) // Delete a file with ID fileID
 	api.Delete("/files/delete/fileId", nil)         // Same
 }
 
 func ExampleAPI_Put() {
-	api := API{Key: "xxx", Secret: "yyy"}
+	api := publitio.API{Key: "xxx", Secret: "yyy"}
 	api.Put("files/update/fileId", url.Values{"title": {"New title"}}) // Update the title for a file with ID fileID
 }
 
 func ExampleAPI_Get() {
-	api := API{Key: "xxx", Secret: "yyy"}
+	api := publitio.API{Key: "xxx", Secret: "yyy"}
 	api.Get("files/list", url.Values{"limit": {"12"}}) // List at most 12 files
 	api.Get("files/list", url.Values{})                // List all files, no query parameters
 	api.Get("/files/list", nil)                        // You can always pass nil if you have no query parameters
