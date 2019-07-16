@@ -29,7 +29,7 @@ type Response interface{}
 // UploadFile uploads a media file to the server using the filename.
 // To upload a file from memory, use api.UploadFile(fileReader, url.Values{"title": {"My file"}}).
 // To upload a file from a remote URL, use api.UploadFile(nil, url.Values{"file_url": {"https://example.com/file.png"}, "title": {"My file"}}).
-func (api *API) UploadFile(file io.Reader, values url.Values) (Response, error) {
+func (api *API) UploadFile(file io.Reader, values url.Values) (result Response, err error) {
 	url, err := api.publitioURL("/files/create", values)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating Publitio url: %v", err)
@@ -68,9 +68,15 @@ func (api *API) UploadFile(file io.Reader, values url.Values) (Response, error) 
 			return nil, fmt.Errorf("error while performing HTTP request: %v", err)
 		}
 	}
-	defer res.Body.Close()
 
-	result, err := parseResponse(res)
+	defer func() {
+		err = res.Body.Close()
+		if err != nil {
+			result = nil
+		}
+	}()
+
+	result, err = parseResponse(res)
 	if err != nil {
 		return nil, fmt.Errorf("error while parsing the response: %v", err)
 	}
@@ -110,7 +116,7 @@ func (api *API) Delete(path string, values url.Values) (Response, error) {
 
 // Call performs any request to the server; use Get, Put and Delete for convenience.
 // If you need a post request, you should probably use Upload or UploadFile.
-func (api *API) Call(method, path string, values url.Values) (Response, error) {
+func (api *API) Call(method, path string, values url.Values) (result Response, err error) {
 	url, err := api.publitioURL(path, values)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating Publitio URL: %v", err)
@@ -125,7 +131,14 @@ func (api *API) Call(method, path string, values url.Values) (Response, error) {
 		return nil, fmt.Errorf("error while performing HTTP request: %v", err)
 	}
 
-	result, err := parseResponse(res)
+	defer func() {
+		err = res.Body.Close()
+		if err != nil {
+			result = nil
+		}
+	}()
+
+	result, err = parseResponse(res)
 	if err != nil {
 		return nil, fmt.Errorf("error while parsing the Publitio response: %v", err)
 	}

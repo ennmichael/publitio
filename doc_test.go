@@ -28,6 +28,7 @@ func Example() {
 func ExampleAPI_UploadFile() {
 	api := API{Key: "xxx", Secret: "yyy"}
 	reader, _ := os.Open("path/to/file")
+	defer reader.Close()
 
 	// Upload a file from memory and give it a title
 	api.UploadFile(reader, url.Values{"title": {"My file"}})
