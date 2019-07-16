@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"mime/multipart"
@@ -16,56 +17,58 @@ import (
 	"time"
 )
 
-// API is used to make all API calls
+// API is used to make all API calls.
 type API struct {
 	Key    string
 	Secret string
 }
 
-// Response is the parsed JSON server response
+// Response is the parsed JSON server response.
 type Response interface{}
 
 // UploadFile uploads a media file to the server using the filename.
-// To upload a file, use api.UploadFile("myfile.png", url.Values{"title": {"My file"}})
-func (api *API) UploadFile(filename string, values url.Values) (Response, error) {
+// To upload a file from memory, use api.UploadFile(fileReader, url.Values{"title": {"My file"}}).
+// To upload a file from a remote URL, use api.UploadFile(nil, url.Values{"file_url": {"https://example.com/file.png"}, "title": {"My file"}}).
+func (api *API) UploadFile(file io.Reader, values url.Values) (Response, error) {
 	url, err := api.publitioURL("/files/create", values)
-	fmt.Println(url)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating Publitio url: %v", err)
 	}
 
-	content, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("error while reading file %s: %v", filename, err)
-	}
+	var res *http.Response
 
-	buffer := &bytes.Buffer{}
-	multipartWriter := multipart.NewWriter(buffer)
-	w, err := multipartWriter.CreateFormFile("file", filename)
-	if err != nil {
-		return nil, fmt.Errorf("error while creating multipart writer: %v", err)
-	}
+	if file == nil {
+		res, err = http.Post(url, "multipart/form-data", &bytes.Buffer{})
+	} else {
+		content, err := ioutil.ReadAll(file)
+		if err != nil {
+			return nil, fmt.Errorf("error while reading file %v", err)
+		}
 
-	_, err = w.Write(content)
-	if err != nil {
-		return nil, fmt.Errorf("error while writing multipart data: %v", err)
-	}
+		requestBody := &bytes.Buffer{}
+		multipartWriter := multipart.NewWriter(requestBody)
+		w, err := multipartWriter.CreateFormFile("file", "new ")
+		if err != nil {
+			return nil, fmt.Errorf("error while creating multipart writer: %v", err)
+		}
 
-	err = multipartWriter.Close()
-	if err != nil {
-		return nil, fmt.Errorf("error while closing the multipart writer: %v", err)
-	}
+		_, err = w.Write(content)
+		if err != nil {
+			return nil, fmt.Errorf("error while writing multipart data: %v", err)
+		}
 
-	req, err := http.NewRequest("POST", url, buffer)
-	if err != nil {
-		return nil, fmt.Errorf("error while creating HTTP request: %v", err)
-	}
+		err = multipartWriter.Close()
+		if err != nil {
+			return nil, fmt.Errorf("error while closing the multipart writer: %v", err)
+		}
 
-	client := http.Client{}
-	res, err := client.PostForm(req)
-	if err != nil {
-		return nil, fmt.Errorf("error while performing HTTP request: %v", err)
+		client := http.Client{}
+		res, err = client.Post(url, "multipart/form-data; boundary="+multipartWriter.Boundary(), requestBody)
+		if err != nil {
+			return nil, fmt.Errorf("error while performing HTTP request: %v", err)
+		}
 	}
+	defer res.Body.Close()
 
 	result, err := parseResponse(res)
 	if err != nil {
@@ -75,7 +78,7 @@ func (api *API) UploadFile(filename string, values url.Values) (Response, error)
 	return result, nil
 }
 
-// Get performs a GET request to the server, for example when listing all files
+// Get performs a GET request to the server, for example when listing all files.
 func (api *API) Get(path string, values url.Values) (Response, error) {
 	res, err := api.Call("GET", path, values)
 	if err != nil {
@@ -85,7 +88,7 @@ func (api *API) Get(path string, values url.Values) (Response, error) {
 	return res, nil
 }
 
-// Put performs a PUT request to the server, for example when updating files
+// Put performs a PUT request to the server, for example when updating files.
 func (api *API) Put(path string, values url.Values) (Response, error) {
 	res, err := api.Call("PUT", path, values)
 	if err != nil {
@@ -95,7 +98,7 @@ func (api *API) Put(path string, values url.Values) (Response, error) {
 	return res, nil
 }
 
-// Delete performs a DELETE request to the server, for example when deleting files
+// Delete performs a DELETE request to the server, for example when deleting files.
 func (api *API) Delete(path string, values url.Values) (Response, error) {
 	res, err := api.Call("DELETE", path, values)
 	if err != nil {
@@ -105,8 +108,8 @@ func (api *API) Delete(path string, values url.Values) (Response, error) {
 	return res, nil
 }
 
-// Call performs any request to the server; use Get, Put and Delete for convenience
-// If you need a post request, you should probably use Upload or UploadFile
+// Call performs any request to the server; use Get, Put and Delete for convenience.
+// If you need a post request, you should probably use Upload or UploadFile.
 func (api *API) Call(method, path string, values url.Values) (Response, error) {
 	url, err := api.publitioURL(path, values)
 	if err != nil {
