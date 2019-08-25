@@ -2,21 +2,23 @@
 
 Go language API for the https://publit.io site.
 
-### Installing
+## Installing
 
-```
+```bash
 go get github.com/ennmichael/publitio
 ```
 
+## Documentation
 
-### Documentation
 Via command line:
-```
+
+```bash
 go doc github.com/ennmichael/publitio
 ```
 
 You can also start a `godoc` server and point your browser to http://localhost:8080/pkg/github.com/ennmichael/publitio/ :
-```
+
+```bash
 godoc -http :8080
 ```
 

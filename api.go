@@ -17,6 +17,9 @@ import (
 	"time"
 )
 
+// Version is the current API version.
+const Version = "1.0.1"
+
 // API is used to make all API calls.
 type API struct {
 	Key    string
@@ -189,6 +192,7 @@ func (api *API) publitioURL(path string, values url.Values) (string, error) {
 	queryValues["api_timestamp"] = []string{timestamp}
 	queryValues["api_key"] = []string{api.Key}
 	queryValues["api_signature"] = []string{signature(api.Secret, timestamp, nonce)}
+	queryValues["api_kit"] = []string{"go-" + Version}
 	for k, v := range values {
 		queryValues[k] = v
 	}
